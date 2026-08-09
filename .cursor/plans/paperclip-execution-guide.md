@@ -8,6 +8,77 @@ Date: 2026-08-03
 
 ---
 
+## Model selection guide
+
+Which Cursor model to use per phase, and when to escalate. Available models in this
+workspace:
+
+| Model | Best for |
+|---|---|
+| **inherit** | Orchestration chat with you; reviewing findings; deciding go/no-go between phases |
+| **composer-2.5-fast** | Well-specified implementation, scaffolding, parallel subagents, scripts with clear inputs |
+| **gpt-5.6-terra-medium** | GCP / Terraform / Cloud Run / IAM — infrastructure correctness over raw speed |
+| **gpt-5.6-sol-medium** | Cross-cutting integration, ambiguous specs, wiring modules together |
+| **cursor-grok-4.5-high-fast** | Empirical debugging, behavioral probes, doc-vs-code contradictions, concurrency edge cases |
+
+**Default rule:** use **inherit** for the conversation that drives the phase (paste prompts,
+review output, decide next step). Assign **composer-2.5-fast** to parallel subagents doing
+independent, bounded work. Use **terra** or **sol** for the single integrator pass that
+wires everything together. Escalate to **grok** when something fails empirically and the
+cause is not obvious from the spec alone.
+
+**Do not** run five parallel subagents on terra/sol — cost and latency multiply with little
+gain when each agent owns one module with an explicit prompt. Save the stronger models for
+integration, proofs, and debugging.
+
+### Per-phase recommendations
+
+| Phase | Primary model | Subagent model | Escalate to | Why |
+|---|---|---|---|---|
+| **L** Local validation | inherit | see per-task below | grok | Mix of harness build, empirical probes, and doc contradictions |
+| **0** GCP foundation | inherit (you run scripts) | **composer-2.5-fast** for T7 | terra | T7 is a bounded bash script; the rest is manual |
+| **1** Terraform foundation | inherit | **composer-2.5-fast** ×5 modules | **gpt-5.6-terra-medium** for T9b; **grok** for T4/T5 if proofs fail | Modules are parallel and spec-driven; integration and live GCP proofs need stronger infra reasoning |
+| **2** Image supply chain | inherit | **composer-2.5-fast** ×2 | terra | crane copy + one workflow; straightforward |
+| **3** Service + jobs | inherit | **composer-2.5-fast** for T11b; **gpt-5.6-terra-medium** for T11a | **gpt-5.6-sol-medium** for T14; grok if bootstrap job fails | Service module is the most env-var-dense Terraform; T14 depends on L3 findings |
+| **4** First admin | **inherit only** | — | grok if job logs are cryptic | Fully manual and interactive; no agent needed unless debugging |
+| **5** Edge + hardening | inherit | **composer-2.5-fast** ×3 (T16, T19, T23+T24); **gpt-5.6-terra-medium** ×2 (T15, T25) | grok if WebSocket/LB behaviour surprises | ALB + Cloud Armor + monitoring need infra depth; docs and smoke script are fast |
+| **6** Agent execution | inherit | **gpt-5.6-sol-medium** or **grok** for T27 | terra if fork build pipeline | Highest ambiguity; depends on T26 decision and upstream cloud-variant gap |
+
+### Per-task overrides within Phase L
+
+Phase L is where model choice matters most — wrong model here wastes the cheapest phase.
+
+| Task | Model | Reason |
+|---|---|---|
+| **L1** Compose harness | **composer-2.5-fast** | Spec is fully written in the prompt; output is files + a smoke report |
+| **L2** Statelessness restart | **composer-2.5-fast** | Runs against L1 stack; procedural |
+| **L3** Bootstrap probe | **cursor-grok-4.5-high-fast** | Highest-value task; doc contradiction, upstream CLI source, iterative config.json — needs reasoning + Docker exec |
+| **L4 + L5** Migrations | **composer-2.5-fast** (one subagent) | Empirical but bounded; escalate to grok only if `pnpm migrate` path fails unexpectedly |
+| **L6** WebSockets + scheduler | **cursor-grok-4.5-high-fast** | Behavioral/concurrency analysis; two-container experiment |
+| **L7** Sizing | **inherit** (you) | `docker stats` — 5 minutes, no agent |
+| **L8** Review findings | **inherit** (you) | Go/no-go; optionally ask inherit to summarize `local/FINDINGS.md` |
+
+### Escalation triggers (any phase)
+
+Switch model mid-task when:
+
+1. **First attempt fails with an unclear error** → **grok** (read logs, form hypothesis, retry).
+2. **Terraform plan shows unexpected destroys or IAM expansion** → **terra** (review before apply).
+3. **Parallel subagents produced modules that don't compose** → **sol** for T9b-style integration only; don't re-run all five modules.
+4. **Empirical proof contradicts the plan** (e.g. `sslmode=require` ignored, public mode rejects HTTP) → **grok** to update `FINDINGS.md` and flag plan changes before GCP apply.
+
+### Cost / speed heuristic
+
+```
+Parallel bounded work     → composer-2.5-fast
+Single Terraform integrator → gpt-5.6-terra-medium
+Ambiguous cross-module wiring → gpt-5.6-sol-medium
+"Run it and tell me what actually happens" → cursor-grok-4.5-high-fast
+You clicking in GCP console / browser → inherit (no agent)
+```
+
+---
+
 ## 0. Do you need to fork Paperclip?
 
 **No — not for the deployment itself.** Three separate questions get conflated here, so
