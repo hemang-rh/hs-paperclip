@@ -1,0 +1,9 @@
+
+services:
+  paperclip:
+    ports:
+      - "3130:3100"
+    environment:
+      PAPERCLIP_PUBLIC_URL: http://localhost:3130
+      PAPERCLIP_API_URL: http://localhost:3130
+      HEARTBEAT_SCHEDULER_ENABLED: "true"

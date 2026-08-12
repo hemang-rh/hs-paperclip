@@ -1,0 +1,44 @@
+{
+  "$meta": {
+    "version": 1,
+    "updatedAt": "REPLACE_WITH_ISO8601",
+    "source": "configure"
+  },
+  "database": {
+    "mode": "postgres",
+    "connectionString": "REPLACE_WITH_DATABASE_URL",
+    "backup": { "enabled": false }
+  },
+  "logging": {
+    "mode": "file",
+    "logDir": "/paperclip/instances/default/logs"
+  },
+  "server": {
+    "deploymentMode": "authenticated",
+    "exposure": "public",
+    "bind": "lan",
+    "host": "0.0.0.0",
+    "port": 3100,
+    "serveUi": true
+  },
+  "auth": {
+    "baseUrlMode": "explicit",
+    "publicBaseUrl": "REPLACE_WITH_PUBLIC_BASE_URL",
+    "disableSignUp": false
+  },
+  "storage": {
+    "provider": "s3",
+    "s3": {
+      "bucket": "REPLACE_WITH_BUCKET",
+      "region": "REPLACE_WITH_REGION",
+      "endpoint": "REPLACE_WITH_S3_ENDPOINT",
+      "forcePathStyle": true,
+      "prefix": "uploads"
+    }
+  },
+  "secrets": {
+    "provider": "local_encrypted",
+    "strictMode": false
+  },
+  "telemetry": { "enabled": false }
+}
