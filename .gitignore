@@ -1,0 +1,55 @@
+# Secrets / local env (keep *.example tracked)
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+
+# Local validation scratch / runtime output
+local/FINDINGS.md
+local/data/
+local/**/*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+!.vscode/extensions.json
+
+# Node / tooling (if added later)
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.turbo/
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+!**/*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# GCP / credentials
+**/credentials.json
+**/service-account*.json
+*.pem
+*.key
+!*.key.example
+
+# Misc
+*.log
+tmp/
+.cache/
