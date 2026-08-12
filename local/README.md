@@ -50,6 +50,42 @@ Healthy response looks like:
 
 ---
 
+## Make agents actually run (API keys)
+
+The control plane comes up without provider keys. **Agent runs do not.**
+
+Chief of Staff (and the other default agents) use the `claude_local` adapter, which
+spawns Claude inside the container. With no credentials you get:
+
+```text
+Error: Authentication required
+stderr: Adapter execution timeout: none (…)
+```
+
+The timeout line is informational; the real failure is missing Anthropic auth.
+
+1. Put your key in `local/.env` (do not commit it):
+
+   ```bash
+   ANTHROPIC_API_KEY=sk-ant-...
+   ```
+
+   For Codex agents, also set `OPENAI_API_KEY`.
+
+2. Recreate the app container so it picks up the new env:
+
+   ```bash
+   cd local
+   docker compose --env-file .env up -d --force-recreate paperclip
+   ```
+
+3. Re-run the agent from the UI.
+
+Upstream docs: pass `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` into the container for local
+adapter runs (`doc/DOCKER.md` in the image).
+
+---
+
 ## First admin (required once)
 
 The UI will say the instance is waiting on its first admin. In
