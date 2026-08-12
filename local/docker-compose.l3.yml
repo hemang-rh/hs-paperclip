@@ -1,0 +1,8 @@
+services:
+  paperclip:
+    ports:
+      - "3110:3100"
+    environment:
+      PAPERCLIP_PUBLIC_URL: http://localhost:3110
+      PAPERCLIP_API_URL: http://localhost:3110
+      PAPERCLIP_AUTH_DISABLE_SIGN_UP: "true"
