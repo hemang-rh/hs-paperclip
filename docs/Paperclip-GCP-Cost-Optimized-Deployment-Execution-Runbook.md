@@ -198,6 +198,24 @@ Cloud Run supports deploying immutable revisions from container images, with Art
 Then locally:
 
 ```bash
+gcloud projects create paperclip-ks-prod --name="Paperclip"
+
+gcloud billing accounts list
+# copy the ACCOUNT_ID of the billing account you want to charge
+
+gcloud billing projects link paperclip-ks-prod \
+  --billing-account=XXXXXX-XXXXXX-XXXXXX
+
+gcloud config set project paperclip-ks-prod
+gcloud config set run/region us-west1
+gcloud config set compute/region us-west1
+
+# Application Default Credentials, which Terraform reads
+gcloud auth application-default login
+gcloud auth application-default set-quota-project paperclip-ks-prod
+```
+
+```bash
 gcloud config set project <PROJECT_ID>
 ```
 
