@@ -1,5 +1,10 @@
 # Paperclip Deployment — Execution Guide
 
+> **Superseded as the working plan.** Start at [`STATUS.md`](../../STATUS.md) and
+> [paperclip-cost-optimized-execution.md](paperclip-cost-optimized-execution.md).
+> This file is the original how-to (Phase L prompts, Terraform module sketches).
+> Do not treat it as the task list.
+
 Companion to [paperclip-deployment.md](paperclip-deployment.md). That document is the
 *what and why*. This one is the *how*: per-task instructions for manual work,
 copy-paste prompts for Cursor work, and where subagents can run in parallel.

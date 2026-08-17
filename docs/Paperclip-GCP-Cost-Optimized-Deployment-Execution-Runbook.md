@@ -1,5 +1,11 @@
 # Paperclip AI on GCP — Cost-Optimized Deployment & Execution Runbook
 
+> **Not the task tracker.** Done/not-done is [`STATUS.md`](../STATUS.md). Working
+> plan (CI apply, what we dropped) is
+> [`.cursor/plans/paperclip-cost-optimized-execution.md`](../.cursor/plans/paperclip-cost-optimized-execution.md).
+> This runbook is architecture and detailed prompts; ignore “run terraform apply
+> locally” — GitHub Actions applies.
+
 ## 1. Objective
 
 Build a cost-optimized Paperclip AI platform on Google Cloud where:

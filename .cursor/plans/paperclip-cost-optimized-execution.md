@@ -1,6 +1,8 @@
 # Paperclip on GCP — Cost-optimized execution plan (high level)
 
-Working plan. Supersedes the chat revision of the original
+Working plan: **why and constraints**. Task done/not-done lives only in [`STATUS.md`](../../STATUS.md). Update that file when a task finishes.
+
+Supersedes the chat revision of the original
 [paperclip-execution-guide.md](paperclip-execution-guide.md) for *what we are
 building now*. Paperclip-on-Cloud-Run facts in the original guide still apply.
 
@@ -11,7 +13,7 @@ You approve the GitHub Environment; CI plans and applies.
 
 **One-time exception:** you run `scripts/bootstrap-gcp.sh` once so Terraform and
 Actions have a state bucket and Workload Identity. That bootstrap cannot be
-Terraform-managed.
+Terraform-managed. The script is already in the repo (STATUS 0.5).
 
 ---
 
@@ -46,44 +48,31 @@ CI     Phase 2   LiteLLM + Gemini worker                 ← first milestone
 LATER  Phase 7–8 OSS go/no-go
 ```
 
+Tasks, owners, and checkboxes: [`STATUS.md`](../../STATUS.md).
+
 ---
 
 ## Phase 0 — GCP account and CI bootstrap
 
-Goal: billed project plus everything GitHub Actions needs. No app infrastructure yet.
+Billed project plus everything GitHub Actions needs. No app infrastructure yet.
 
-| Task | Owner |
-|---|---|
-| 0.1 Create/select project, set `PROJECT_ID` / region | You |
-| 0.2 Link billing, monthly budget + 50/75/90/100% alerts | You |
-| 0.3 `gcloud auth login` + application-default credentials | You |
-| 0.4 Confirm no GPU / no GKE | You |
-| 0.5 Write `scripts/bootstrap-gcp.sh`: enable APIs, TF state bucket, WIF pool+provider constrained to this repo, `terraform-deployer` SA (no JSON keys) | Cursor |
-| 0.6 Run the bootstrap script | You |
-| 0.7 Add GitHub Actions variables (`GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_DEPLOYER_SA`, `TF_STATE_BUCKET`) and a GitHub Environment `dev` with required reviewers (you) | You |
-
-CI workflows themselves are written in Phase 1 (they need the Terraform tree). Bootstrap must exist first.
+CI workflows are written in Phase 1 (they need the Terraform tree). The bootstrap
+script already exists; do not rewrite it. You still run it once (0.6) after the
+project and billing exist.
 
 ---
 
 ## Phase 1 — Paperclip foundation (CI applies)
 
-Goal: UI up, Postgres durable, secrets in Secret Manager. No LiteLLM yet.
+UI up, Postgres durable, secrets in Secret Manager. No LiteLLM yet.
 
-| Task | Owner |
-|---|---|
-| 1.1 Scaffold `infra/`, `gateway/`, `scripts/`, `.github/workflows/` in this repo (do not vendor Paperclip source) | Cursor |
-| 1.2 Terraform: APIs, Artifact Registry, VPC + private Cloud SQL (small dev tier), Secret Manager containers, GCS uploads, runtime SAs (`paperclip-runtime`, `litellm-runtime` placeholder) | Cursor |
-| 1.3 Image promote script + `image-promote.yml` (mirror GHCR → Artifact Registry, digest pin, PR that updates the pin) | Cursor |
-| 1.4 Cloud Run `paperclip`: 1 vCPU / 4 GiB, CPU always on, min=max=1, auto-migrate, Cloud SQL + GCS + secrets | Cursor |
-| 1.5 Bootstrap Job (`auth bootstrap-ceo` + seeded `config.json`) | Cursor |
-| 1.6 GitHub Actions: `terraform-plan.yml` (PR), `terraform-apply.yml` (merge to main, Environment `dev` gate), `deploy.yml` (new image digest → apply service → smoke). WIF auth, no SA JSON keys. | Cursor |
-| 1.7 Seed secret **values** out of band (Paperclip secrets now; model keys in Phase 2). Not Terraform. | You |
-| 1.8 Open/merge the infra PR; **approve the `dev` Environment** so Actions applies | You |
-| 1.9 Dispatch image-promote (or merge its pin PR); claim first admin; disable signup | You |
-| 1.10 Validate: UI, company, restart, data still there, logs have no secrets | You |
+Consume the published image (digest-pinned). Do not vendor or rebuild Paperclip.
+Keep **min-instances = 1** and **CPU always allocated** so the heartbeat scheduler
+runs. Use auto-migrate for v1. GCS holds uploads; Secret Manager holds
+`PAPERCLIP_SECRETS_MASTER_KEY` and auth secrets.
 
-You never run `terraform apply`. Review the plan comment on the PR, then approve the Environment.
+You never run `terraform apply`. Review the plan comment on the PR, then approve
+the `dev` Environment.
 
 Default agents may fail until Phase 2 (`claude_local` with no key). Expected.
 
@@ -91,67 +80,46 @@ Default agents may fail until Phase 2 (`claude_local` with no key). Expected.
 
 ## Phase 2 — LLM gateway (first milestone)
 
-Same apply path: Cursor lands Terraform/config in a PR; Actions applies after you approve.
+Same apply path: Cursor lands Terraform/config in a PR; Actions applies after you
+approve. Provider keys live on LiteLLM, not on Paperclip. Reuse a built-in
+HTTP/OpenAI adapter if Paperclip already has one.
 
-| Task | Owner |
-|---|---|
-| 2.1 Gemini auth: API key (faster) vs Vertex IAM (later) | You |
-| 2.2 Put Gemini (and optional Anthropic) keys in Secret Manager; do not paste them into chat | You |
-| 2.3 LiteLLM Cloud Run + aliases `worker` / `reasoning` / `premium`; gateway auth; no public anonymous API | Cursor |
-| 2.4 Inspect Paperclip for an existing HTTP/OpenAI adapter; reuse if it works; custom `litellm-http` only if needed | Cursor |
-| 2.5 Merge PR; approve Environment; confirm Actions applied LiteLLM | You |
-| 2.6 Point one test agent at `worker` | You |
-| 2.7 Validate: Paperclip → LiteLLM → Gemini; Claude not default; no keys in Paperclip logs | You |
+Stop until Gemini `worker` is reliable before starting Phase 3.
 
 ---
 
 ## Phase 3 — Agent routing
 
-| Task | Owner |
-|---|---|
-| 3.1 Roster of 3–5 agents (purpose, default alias, fallback) | You |
-| 3.2 Config layer: alias, token/iteration caps, no auto-classifier | Cursor |
-| 3.3 Configure those agents; run 10–20 real tasks | You |
-
+Three to five agents, logical aliases, no automatic complexity classifier.
 Developer → Codex uses Paperclip’s existing adapter. No Daytona.
 
 ---
 
 ## Phase 4 — Escalation
 
-| Task | Owner |
-|---|---|
-| 4.1 Approve triggers and bounded retries | You |
-| 4.2 Implement `worker → reasoning → premium` only; no extra LLM to decide | Cursor |
-| 4.3 Force failures; confirm no infinite loop | You |
+Deterministic `worker → reasoning → premium` only. Bounded retries. No extra LLM
+request to decide whether to escalate.
 
 ---
 
 ## Phase 5 — Cost observability
 
-| Task | Owner |
-|---|---|
-| 5.1 Confirm KPIs (cost per successful task) | You |
-| 5.2 Structured usage logs (no prompts/secrets) | Cursor |
-| 5.3 Cheap BigQuery sink + queries | Cursor |
-| 5.4 Simplest GCP dashboard | Cursor |
-| 5.5 Weekly review | You |
+Structured usage logs (no prompts/secrets), a cheap BigQuery sink, simplest GCP
+dashboard. Primary KPI: cost per successfully completed task.
 
 ---
 
 ## Phase 6 — Fewer calls
 
-| Task | Owner |
-|---|---|
-| 6.1 Turn off useless heartbeats | You |
-| 6.2 Guardrails: max iterations / tools / tokens / runtime | Cursor |
-| 6.3 Low-risk context trimming after measuring prompts | Cursor |
+Cut useless heartbeats, then guardrails, then low-risk context trimming after
+measuring current prompts.
 
 ---
 
 ## Phases 7–8 — later
 
-Not scheduled. You decide from Phase 5 data. Cursor does not create GPUs unless you say so.
+Not scheduled. You decide from Phase 5 data. Cursor does not create GPUs unless
+you say so.
 
 ---
 

@@ -1,5 +1,10 @@
 # Paperclip on GCP Cloud Run — Architecture & Deployment Plan
 
+> **Superseded as the working plan.** Start at [`STATUS.md`](../../STATUS.md) and
+> [paperclip-cost-optimized-execution.md](paperclip-cost-optimized-execution.md).
+> This file is background (how Paperclip behaves on Cloud Run). Do not treat it
+> as the task list.
+
 Status: Plan only. Nothing implemented.
 Date: 2026-08-03
 Target: `paperclipai/paperclip` @ `v2026.722.0` (latest stable release, published 2026-07-22)
